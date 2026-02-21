@@ -1,0 +1,331 @@
+{
+  "name": "Daily Brief Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        -176
+      ],
+      "id": "27809597-9d31-4133-a36f-e88e6525d824",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE",
+          "mode": "list",
+          "cachedResultName": "Daily Brief Bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1520206972,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE/edit#gid=1520206972"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        272,
+        -176
+      ],
+      "id": "e1e11b92-bb6b-4d60-aae0-a5372dee5ce2",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HT6FXFCE1dY6gcI5",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://geocoding-api.open-meteo.com/v1/search?name={{ $json[\"Which City do you live in?\"] }}&count=1",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        -176
+      ],
+      "id": "c1031839-e31c-4785-8caa-3176b6c0545e",
+      "name": "Geocoding"
+    },
+    {
+      "parameters": {
+        "url": "https://api.open-meteo.com/v1/forecast",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "latitude",
+              "value": "={{ $node[\"Geocoding\"].json[\"results\"][0][\"latitude\"] }}"
+            },
+            {
+              "name": "longitude",
+              "value": "={{ $node[\"Geocoding\"].json[\"results\"][0][\"longitude\"] }}"
+            },
+            {
+              "name": "current_weather",
+              "value": "=true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        -176
+      ],
+      "id": "2850ebdd-e384-4252-b399-e7c9317b1300",
+      "name": "Weather"
+    },
+    {
+      "parameters": {
+        "url": "http://feeds.bbci.co.uk/news/world/rss.xml",
+        "options": {
+          "customFields": "3",
+          "ignoreSSL": false
+        }
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        -176
+      ],
+      "id": "9571ce44-c672-43fa-bd27-e2ad2601d00d",
+      "name": "RSS Read"
+    },
+    {
+      "parameters": {
+        "jsCode": "const headlines = [];\n// Loop through the news items and take the first 3\nfor (let i = 0; i < Math.min($input.all().length, 3); i++) {\n  headlines.push(`${i + 1}. ${$input.all()[i].json.title}`);\n}\n\n// Return 1 single item with all headlines combined\nreturn {\n  combined_news: headlines.join('\\n')\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        -176
+      ],
+      "id": "bc498aeb-053c-45d9-b9c0-0806c8a30ceb",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Get row(s) in sheet\"].json[\"What is your Telegram Chat ID?\"] }}",
+        "text": "=Daily Executive Brief 📅\n---------------------------\nHello {{ $node[\"Get row(s) in sheet\"].json[\"What is your First Name?\"] }}! \n\n🌤 Weather in {{ $node[\"Get row(s) in sheet\"].json[\"Which City do you live in?\"] }}:\n• Temp: {{ $node[\"Weather\"].json[\"current_weather\"][\"temperature\"] }}°C\n• Wind: {{ $node[\"Weather\"].json[\"current_weather\"][\"windspeed\"] }} km/h\n\n📰 Top Headlines:\n{{ $node[\"Code in JavaScript\"].json[\"combined_news\"] }}\n\nHave a productive day!",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        -176
+      ],
+      "id": "a53f13af-31b6-4b1b-a862-3da6b53c83ef",
+      "name": "Send a text message",
+      "webhookId": "562024bb-7d4d-4073-b9b0-8b76664e2a69",
+      "credentials": {
+        "telegramApi": {
+          "id": "81HQS7cMpl6pLZiZ",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE",
+          "mode": "list",
+          "cachedResultName": "Daily Brief Bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1208469662,
+          "mode": "list",
+          "cachedResultName": "System_Logs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1YQaTO89oUcaFvx8Kpm7meG7fLUtifJlDNRjFFg2_lmE/edit#gid=1208469662"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Type": "SUCCESS",
+            "Description": "=Sent brief to {{ $node[\"Get row(s) in sheet\"].json[\"First_Name\"] }}"
+          },
+          "matchingColumns": [
+            "Timestamp"
+          ],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Description",
+              "displayName": "Description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1504,
+        -176
+      ],
+      "id": "7576b9c5-b5ff-4a7a-8546-f081ae94ad6e",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HT6FXFCE1dY6gcI5",
+          "name": "Google Sheets account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Geocoding",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Geocoding": {
+      "main": [
+        [
+          {
+            "node": "Weather",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather": {
+      "main": [
+        [
+          {
+            "node": "RSS Read",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "cda027ce-2195-4b78-a693-75a03f9ed2ca",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5ed3f6cb30a2430104ff8f64af2ad719bedadad14b17673998bc9670200c3249"
+  },
+  "id": "xztWRWjwlCOfMJXcgfmPs",
+  "tags": []
+}
